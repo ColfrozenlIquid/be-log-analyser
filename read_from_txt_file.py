@@ -505,73 +505,91 @@ def total_online_time_user(timedelta_array):
     total_online_time = sum(timedelta_array, dt.timedelta())
     return total_online_time
 
+def check_input_valid(input):
+    try:
+        parser.parse(input)
+        return True 
+    except ValueError:
+        raise ValueError("Incorrect Data, format should be DD/MM/YYYY")
+
+def convert_input(input):
+    date = parser.parse(input, dayfirst=True)
+    date_string = date.strftime('%Y-%m-%d')
+    string = "Be_" + date_string + ".log"
+    return string
+
 def main():
-    filename_array = read_dir()                         #Find all log files in folder and convert to strings
-    filename_array_size = len(filename_array)
-    print(filename_array_size)
-    i = 1
-    huge_array = []
-    while(i <= 1):
-        array = []
-        file = filename_array[i-1]      #Select file here
-        print(file)
-        date = convert_filename_to_date(file)
-        file_name, array = import_txt(file)
-        print("Size of input array is:", len(array))
-        connect_array, disconnect_array, guid_array, battleye_array, unexpected_restart_array = extract_connections(array, date)
-        print("Size of connect_array is:", len(connect_array))
-        print("Size of disconnect_array is:", len(disconnect_array))
-        print("Size of guid_array is:", len(guid_array))
-        print("Size of battleye_array is:", len(battleye_array))
-        print("Size of unexpected_restart_array is:", len(unexpected_restart_array))                        
-        be_disconnects = regex_battleye_disconnects(battleye_array, date)
-        guid_tuple_array = guid_tuple_regex(guid_array)                                                                                       #(GUID, Name)
-        connected_tuple_array = connected_tuple_regex(connect_array, date)                                                                    #(Time, Name, ConnectionStatus)
-        disconnected_tuple_array = disconnected_tuple_regex(disconnect_array, date)                                                           #(Time, Name, ConnectionStatus)
-        guid_connect_array = combine_GUID_Connection_Tuples(guid_tuple_array, connected_tuple_array)                                          #(Time, GUID, ConnectionStatus=connected)
-        guid_disconnect_array = combine_GUID_Disconnection_Tuples(guid_tuple_array, disconnected_tuple_array)                                 #(Time, GUID, ConnectionStatus=disconnected)
-        combined_connect_disconnect_array = guid_connect_array + guid_disconnect_array
-        global_disconnects = add_global_disconnects(date)
-        polling_array = fixed_time_intervall_arrays(date)
-        combined_connect_disconnect_array = combined_connect_disconnect_array + global_disconnects + be_disconnects + unexpected_restart_array + polling_array
-        sorted_array = sorted(combined_connect_disconnect_array, key=lambda tup: tup[0])
-        combined_connect_disconnect_array = sorted_array
-        connected_users_array, polling, average_users_session = find_Online_Users(combined_connect_disconnect_array)
-        user_unique_connections = get_unique_connectiondata(combined_connect_disconnect_array)
-        unique_user_connection_time = parse_connection_time(user_unique_connections)
-        total_online = total_online_time_user(unique_user_connection_time)
-        average_user_count = calculate_average_user_count(polling)
-        #write_connect_disconnect_array_to_csv(combined_connect_disconnect_array)
-        #for x in guid_tuple_array:
-        #    print(x)
-        #write_guids_to_csv(guid_tuple_array)
-        i = i + 1
-    #sorted_unique_guid_array = sorted(huge_array, key= lambda tup: tup[0])
-    #print(guid_tuple_array)
+    user_input = input("Enter desired date in format DD/MM/YYYY: ")
+    checked = check_input_valid(user_input)
+    if (checked):
+        string = convert_input(user_input)
+        filename_array = read_dir()                         #Find all log files in folder and convert to strings
+        filename_array_size = len(filename_array)
+        print(filename_array_size)
+        i = 1
+        huge_array = []
+        while(i <= 1):
+            array = []
+            #file = filename_array[i-1]      #Select file here
+            file = string
+            print(file)
+            date = convert_filename_to_date(file)
+            file_name, array = import_txt(file)
+            print("Size of input array is:", len(array))
+            connect_array, disconnect_array, guid_array, battleye_array, unexpected_restart_array = extract_connections(array, date)
+            print("Size of connect_array is:", len(connect_array))
+            print("Size of disconnect_array is:", len(disconnect_array))
+            print("Size of guid_array is:", len(guid_array))
+            print("Size of battleye_array is:", len(battleye_array))
+            print("Size of unexpected_restart_array is:", len(unexpected_restart_array))                        
+            be_disconnects = regex_battleye_disconnects(battleye_array, date)
+            guid_tuple_array = guid_tuple_regex(guid_array)                                                                                       #(GUID, Name)
+            connected_tuple_array = connected_tuple_regex(connect_array, date)                                                                    #(Time, Name, ConnectionStatus)
+            disconnected_tuple_array = disconnected_tuple_regex(disconnect_array, date)                                                           #(Time, Name, ConnectionStatus)
+            guid_connect_array = combine_GUID_Connection_Tuples(guid_tuple_array, connected_tuple_array)                                          #(Time, GUID, ConnectionStatus=connected)
+            guid_disconnect_array = combine_GUID_Disconnection_Tuples(guid_tuple_array, disconnected_tuple_array)                                 #(Time, GUID, ConnectionStatus=disconnected)
+            combined_connect_disconnect_array = guid_connect_array + guid_disconnect_array
+            global_disconnects = add_global_disconnects(date)
+            polling_array = fixed_time_intervall_arrays(date)
+            combined_connect_disconnect_array = combined_connect_disconnect_array + global_disconnects + be_disconnects + unexpected_restart_array + polling_array
+            sorted_array = sorted(combined_connect_disconnect_array, key=lambda tup: tup[0])
+            combined_connect_disconnect_array = sorted_array
+            connected_users_array, polling, average_users_session = find_Online_Users(combined_connect_disconnect_array)
+            user_unique_connections = get_unique_connectiondata(combined_connect_disconnect_array)
+            unique_user_connection_time = parse_connection_time(user_unique_connections)
+            total_online = total_online_time_user(unique_user_connection_time)
+            average_user_count = calculate_average_user_count(polling)
+            #write_connect_disconnect_array_to_csv(combined_connect_disconnect_array)
+            #for x in guid_tuple_array:
+            #    print(x)
+            #write_guids_to_csv(guid_tuple_array)
+            i = i + 1
+        #sorted_unique_guid_array = sorted(huge_array, key= lambda tup: tup[0])
+        #print(guid_tuple_array)
 
 
-    #Plotting section
-    date = str(date)
-    graph_label = "Online users on: " + date
-    x_labels = [val[0] for val in polling]  # type: ignore
-    y_labels = [val[1] for val in polling]  # type: ignore
-    plt.title(graph_label)
-    plt.plot(x_labels, y_labels)
-    plt.grid()
-    session1 = "Average users: " + str(average_users_session[0])
-    session2 = "Average users: " + str(average_users_session[1])
-    session3 = "Average users: " + str(average_users_session[2])
-    session4 = "Average users: " + str(average_users_session[3])
-    plt.figtext(.23, .8, session1)
-    plt.figtext(.415, .8, session2)
-    plt.figtext(.55, .8, session3)
-    plt.figtext(.7, .8, session4)
-    restarts = []
-    for x in global_disconnects:
-        (time, user, status) = x
-        restarts.append(time)
-    plt.vlines(restarts, ymin = 0, ymax = 70, colors = 'red')
-    plt.show()
+        #Plotting section
+        date = str(date)
+        graph_label = "Online users on: " + date
+        x_labels = [val[0] for val in polling]  # type: ignore
+        y_labels = [val[1] for val in polling]  # type: ignore
+        plt.title(graph_label)
+        plt.plot(x_labels, y_labels)
+        plt.grid()
+        session1 = "Average users: " + str(average_users_session[0])
+        session2 = "Average users: " + str(average_users_session[1])
+        session3 = "Average users: " + str(average_users_session[2])
+        session4 = "Average users: " + str(average_users_session[3])
+        plt.figtext(.23, .8, session1)
+        plt.figtext(.415, .8, session2)
+        plt.figtext(.55, .8, session3)
+        plt.figtext(.7, .8, session4)
+        restarts = []
+        for x in global_disconnects:
+            (time, user, status) = x
+            restarts.append(time)
+        plt.vlines(restarts, ymin = 0, ymax = 70, colors = 'red')
+        plt.show()
 
 main()
 
